@@ -1,5 +1,11 @@
 [
   {
+    "title": "Faster clear, staff tools and settings backups",
+    "tag": "NEW",
+    "date": "2026-11-04",
+    "body": "!cls now clears the whole chat in one go, and the report comes to you by PM so the chat stays empty. New !voxstaff shows the official VOXbots staff in any room, so you can check anyone who says they work for us. Owners can now back up their bot’s settings to a file, restore them, or copy them from another bot (Settings, Backup and restore)."
+  },
+  {
     "title": "Talk to staff from Discord",
     "tag": "NEW",
     "date": "2026-11-03",
