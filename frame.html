@@ -6,8 +6,8 @@
 <title>VOXbots</title>
 <!--
   VOXbots xatframe: the page xat shows behind the chat.
-  Updates come from updates.json next to this file (edit that file to post a new update).
-  If it can't be loaded, the copy in FALLBACK_UPDATES below is shown.
+  Updates come live from the VOXbots site (LIVE_UPDATES below; post them in Admin, Updates).
+  If that fails, updates.json next to this file is used, then the copy in FALLBACK_UPDATES.
 -->
 <style>
   :root {
@@ -176,10 +176,12 @@ render();
 // Settings can be passed in the address, for example frame.html?bot=1556180392&updates=https://example.com/updates.json
 const params = new URLSearchParams(location.search);
 if (/^\d{1,12}$/.test(params.get('bot') || '')) $('botId').textContent = params.get('bot');
-fetch(params.get('updates') || 'updates.json', { cache: 'no-store' })
+// Live feed from the VOXbots site first; updates.json next to this file if the site can't be reached.
+const LIVE_UPDATES = 'https://voxbots.rawdatahosting.com/api/public/updates';
+const load = (url) => fetch(url, { cache: 'no-store' })
   .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
-  .then((list) => { if (Array.isArray(list) && list.length) { updates = list.filter((u) => u && u.title); render(); } })
-  .catch(() => {});
+  .then((list) => { if (!Array.isArray(list) || !list.length) throw new Error('empty'); updates = list.filter((u) => u && u.title); render(); });
+load(params.get('updates') || LIVE_UPDATES).catch(() => load('updates.json')).catch(() => {});
 
 // Slowly drifting chat bubbles and specks of light.
 const cv = $('fx'), cx = cv.getContext('2d');
