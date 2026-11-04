@@ -60,6 +60,10 @@
   .cta { margin-top: 4px; padding: 10px 12px; border-radius: 12px; background: linear-gradient(135deg, rgba(43, 89, 255, .35), rgba(109, 141, 255, .18)); border: 1px solid var(--line); font-weight: 700; text-align: center; }
   .cta small { display: block; font-weight: 500; color: var(--soft); }
   .feed { padding: 0; overflow: hidden; }
+  #msgs { overflow: hidden; scroll-behavior: smooth; }
+  .dots { display: flex; gap: 6px; justify-content: center; padding: 0 0 14px; }
+  .dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line); transition: width .3s, background .3s; }
+  .dots i.on { width: 18px; background: var(--light); }
   .pitch { font-size: 21px; margin: 2px 0 0; } .pitch em { font-style: normal; color: var(--gold); }
   .feed .steps { margin-top: 2px; }
   .feedhead { display: flex; align-items: center; gap: 6px; padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 15px; background: rgba(43, 89, 255, .12); }
@@ -89,6 +93,7 @@
 <aside class="card feed" id="updates" aria-label="What's new in VOXbots">
   <div class="feedhead"><span class="hash">#</span>whats-new<span class="online"><i></i>VOXbots online</span></div>
   <div class="msgs" id="msgs"></div>
+  <div class="dots" id="dots" aria-hidden="true"></div>
 </aside>
 
 <aside class="card feed" id="getbot" aria-label="Get a VOXbots bot">
@@ -136,7 +141,21 @@ function render() {
     msg.querySelector('p').textContent = u.body;
     box.appendChild(msg);
   }
+  $('dots').replaceChildren(...[...box.children].map(() => document.createElement('i')));
+  showAt(0);
 }
+
+// xat's page sits on top of the xatframe, so visitors can't scroll it. The feed moves on by itself instead.
+const STEP_MS = 9000;
+let current = 0;
+function showAt(i) {
+  const box = $('msgs'), items = [...box.children];
+  if (!items.length) return;
+  current = i % items.length;
+  box.scrollTop = items[current].offsetTop - box.firstElementChild.offsetTop;
+  [...$('dots').children].forEach((d, k) => d.classList.toggle('on', k === current));
+}
+setInterval(() => showAt(current + 1), STEP_MS);
 
 // The cards sit beside the chat box, and only when the window is wide enough for them.
 function place() {
