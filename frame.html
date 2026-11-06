@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ACGbots</title>
+<!--
+  ACGbots xatframe: the page xat shows behind the chat.
+  Updates come live from the ACGbots site (LIVE_UPDATES below; post them in Admin, Updates).
+  If that fails, updates.json next to this file is used, then the copy in FALLBACK_UPDATES.
+-->
+<style>
+  :root {
+    --night: #070b16; --night2: #111a2e; --card: rgba(17, 26, 46, .82); --line: rgba(255, 255, 255, .13);
+    --ink: #eef4ff; --soft: #9fb0cc; --blue: #6366f1; --light: #c7d2fe; --gold: #38bdf8; --green: #34d399; --pink: #0ea5e9;
+    --chat-w: 728px; --chat-top: 148px; --card-w: 300px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--night); color: var(--ink);
+    font: 14px/1.5 "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif; }
+  .sky { position: fixed; inset: 0; background:
+      radial-gradient(720px 560px at 10% 8%, rgba(99, 102, 241, .55), transparent 70%),
+      radial-gradient(640px 520px at 92% 22%, rgba(14, 165, 233, .32), transparent 70%),
+      radial-gradient(760px 520px at 50% 85%, rgba(99, 102, 241, .35), transparent 70%),
+      var(--night); }
+  .grid { position: fixed; inset: 0; opacity: .5;
+    background-image: radial-gradient(rgba(255, 255, 255, .16) 1px, transparent 1px);
+    background-size: 28px 28px; mask-image: radial-gradient(ellipse at 50% 40%, #000 20%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 20%, transparent 75%); }
+  canvas { position: fixed; inset: 0; }
+  .card { position: fixed; top: var(--chat-top); width: var(--card-w); max-height: 486px; display: none; flex-direction: column;
+    background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 18px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .06); backdrop-filter: blur(14px); }
+  .card.show { display: flex; }
+  .head { display: flex; align-items: center; gap: 10px; }
+  .logo { width: 38px; height: 38px; border-radius: 11px; background: var(--blue); display: grid; place-items: center; flex: none;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .14) inset, 0 6px 18px rgba(99, 102, 241, .45); }
+  .logo svg { width: 22px; height: 22px; fill: #fff; }
+  .label { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); flex: 1; }
+  .live { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(95, 220, 146, .6); animation: pulse 2.4s infinite; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 9px rgba(95, 220, 146, 0); } 100% { box-shadow: 0 0 0 0 rgba(95, 220, 146, 0); } }
+  h1 { font-size: 22px; line-height: 1.2; margin: 14px 0 10px; font-weight: 800; letter-spacing: -.01em; }
+  .meta { display: flex; align-items: center; justify-content: space-between; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .tag { font-size: 11px; font-weight: 800; letter-spacing: .08em; padding: 3px 9px; border-radius: 999px; color: #0b2a17; background: var(--green); }
+  .tag.fix { background: var(--gold); color: #3a2a00; }
+  .tag.info { background: var(--light); color: #0a1240; }
+  .date { color: var(--soft); font-size: 12px; font-weight: 600; }
+  .body { overflow-y: auto; margin-top: 12px; color: #d6dbf5; white-space: pre-line; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+    mask-image: linear-gradient(#000 85%, transparent); -webkit-mask-image: linear-gradient(#000 85%, transparent); padding-bottom: 18px; }
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .nav button { border: 1px solid var(--line); background: rgba(255, 255, 255, .06); color: var(--ink); width: 34px; height: 30px; border-radius: 9px; cursor: pointer; font-size: 15px; }
+  .nav button:hover { background: rgba(255, 255, 255, .14); }
+  .nav button:disabled { opacity: .35; cursor: default; }
+  .count { color: var(--soft); font-size: 12px; }
+  .steps { list-style: none; margin: 14px 0 0; padding: 0; counter-reset: s; }
+  .steps li { counter-increment: s; position: relative; padding: 0 0 12px 38px; color: #d6dbf5; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: -1px; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--gold), #7dd3fc); border: 0; font-weight: 800; color: #04121f; font-size: 13px; }
+  .steps b { color: var(--ink); }
+  .chip { display: inline-block; font: 600 12px/1 ui-monospace, Consolas, monospace; background: rgba(255, 207, 63, .14); color: var(--gold); border: 1px solid rgba(255, 207, 63, .35); padding: 4px 7px; border-radius: 7px; }
+  .cta { margin-top: 4px; padding: 10px 12px; border-radius: 14px; background: linear-gradient(135deg, rgba(56, 189, 248, .22), rgba(14, 165, 233, .14)); border: 1px solid var(--line); font-weight: 700; text-align: center; }
+  .cta small { display: block; font-weight: 500; color: var(--soft); }
+  .feed { padding: 0; overflow: hidden; }
+  #msgs { overflow: hidden; scroll-behavior: smooth; }
+  .dots { display: flex; gap: 6px; justify-content: center; padding: 0 0 14px; }
+  .dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line); transition: width .3s, background .3s; }
+  .dots i.on { width: 18px; background: var(--gold); }
+  .pitch { font-size: 21px; margin: 2px 0 0; } .pitch em { font-style: normal; color: var(--gold); }
+  .feed .steps { margin-top: 2px; }
+  .feedhead { display: flex; align-items: center; gap: 6px; padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 15px; background: rgba(255, 255, 255, .05); }
+  .hash { color: var(--gold); font-size: 18px; font-weight: 800; }
+  .online { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--soft); display: flex; align-items: center; gap: 6px; }
+  .online i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .msgs { overflow-y: auto; padding: 14px 14px 18px; display: flex; flex-direction: column; gap: 14px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; }
+  .ava { width: 32px; height: 32px; border-radius: 10px; background: var(--night2); border: 1px solid var(--line); display: grid; place-items: center; flex: none; margin-top: 2px; }
+  .ava svg { width: 22px; height: 22px; }
+  .who { font-size: 12px; color: var(--soft); margin: 0 0 3px 2px; }
+  .who b { color: var(--gold); }
+  .bubble { background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 4px 14px 14px 14px; padding: 9px 12px; }
+  .msg:first-child .bubble { background: linear-gradient(160deg, rgba(56, 189, 248, .16), rgba(14, 165, 233, .08)); border-color: rgba(56, 189, 248, .45); }
+  .bubble strong { display: block; font-size: 15px; margin-bottom: 3px; }
+  .bubble p { margin: 0; color: #d6dbf5; font-size: 13px; white-space: pre-line; }
+  .kind { font-size: 10px; font-weight: 800; letter-spacing: .08em; margin-right: 6px; color: var(--green); }
+  .kind.fix { color: var(--gold); } .kind.info { color: var(--light); }
+  @media (prefers-reduced-motion: reduce) { .live { animation: none; } }
+</style>
+</head>
+<body>
+<div class="sky"></div>
+<div class="grid"></div>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<aside class="card feed" id="updates" aria-label="What's new in ACGbots">
+  <div class="feedhead"><span class="hash">#</span>whats-new<span class="online"><i></i>Advanced Chat Guardians</span></div>
+  <div class="msgs" id="msgs"></div>
+  <div class="dots" id="dots" aria-hidden="true"></div>
+</aside>
+
+<aside class="card feed" id="getbot" aria-label="Get an ACGbots bot">
+  <div class="feedhead"><span class="hash">#</span>get-a-bot</div>
+  <div class="msgs">
+    <h1 class="pitch">Your own <em>guardian</em> in five minutes</h1>
+    <ol class="steps">
+      <li><b>Assign the (bot) power</b> in your chat.</li>
+      <li><b>Set the Bot ID</b> to <span class="chip" id="botId">1561485325</span> in your group settings.</li>
+      <li><b>Start it</b> from the ACGbots panel and type <span class="chip">!confirmbot</span></li>
+    </ol>
+    <div class="cta">Moderation · games · mail<small>Free to start. Ask in this chat for help.</small></div>
+  </div>
+</aside>
+
+<script>
+// Shown if updates.json can't be loaded. Newest first.
+const FALLBACK_UPDATES = [
+  { title: 'Discord staff bridge', tag: 'NEW', date: '2026-11-03', body: 'Our staff can now follow this chat from Discord and answer you right here.\n\nMessages from staff show up as [Discord] Name.' },
+];
+
+const CHAT_W = 728, GAP = 28;
+const $ = (id) => document.getElementById(id);
+let updates = FALLBACK_UPDATES;
+const AVA = '<div class="ava"><svg viewBox="0 0 96 96" aria-hidden="true"><path d="M14 10h68a10 10 0 0 1 10 10v44a10 10 0 0 1-10 10H44L24 90V74H14A10 10 0 0 1 4 64V20a10 10 0 0 1 10-10Z" fill="#38bdf8"/><text x="48" y="51" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="22" letter-spacing="-1" fill="#04121f">ACG</text></svg></div>';
+
+function fmtDate(iso) {
+  const d = new Date(`${iso}T12:00:00`);
+  return isNaN(d) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+// Each update is a message from ACGbots, newest at the top.
+function render() {
+  const box = $('msgs');
+  box.textContent = '';
+  for (const u of updates.slice(0, 8)) {
+    const tag = String(u.tag || 'NEW').toUpperCase();
+    const msg = document.createElement('div');
+    msg.className = 'msg';
+    msg.innerHTML = `${AVA}<div><div class="who"><b>ACGbots</b> · <span></span></div><div class="bubble"><strong><span class="kind"></span><span class="t"></span></strong><p></p></div></div>`;
+    msg.querySelector('.who span').textContent = fmtDate(u.date);
+    const kind = msg.querySelector('.kind');
+    kind.textContent = tag;
+    if (tag === 'FIX') kind.classList.add('fix'); else if (tag === 'INFO') kind.classList.add('info');
+    msg.querySelector('.t').textContent = u.title;
+    msg.querySelector('p').textContent = u.body;
+    box.appendChild(msg);
+  }
+  $('dots').replaceChildren(...[...box.children].map(() => document.createElement('i')));
+  showAt(0);
+}
+
+// xat's page sits on top of the xatframe, so visitors can't scroll it. The feed moves on by itself instead.
+const STEP_MS = 9000;
+let current = 0;
+function showAt(i) {
+  const box = $('msgs'), items = [...box.children];
+  if (!items.length) return;
+  current = i % items.length;
+  box.scrollTop = items[current].offsetTop - box.firstElementChild.offsetTop;
+  [...$('dots').children].forEach((d, k) => d.classList.toggle('on', k === current));
+}
+setInterval(() => showAt(current + 1), STEP_MS);
+
+// The cards sit beside the chat box, and only when the window is wide enough for them.
+function place() {
+  const side = (innerWidth - CHAT_W) / 2;
+  const fits = side >= 300 + GAP * 2;
+  const w = Math.min(340, side - GAP * 2);
+  for (const [id, left] of [['updates', true], ['getbot', false]]) {
+    const el = $(id);
+    el.classList.toggle('show', fits);
+    el.style.width = `${w}px`;
+    el.style.left = left ? `${side - GAP - w}px` : `${side + CHAT_W + GAP}px`;
+  }
+}
+addEventListener('resize', place);
+place();
+render();
+
+// Settings can be passed in the address, for example frame.html?bot=1561485325&updates=https://example.com/updates.json
+const params = new URLSearchParams(location.search);
+if (/^\d{1,12}$/.test(params.get('bot') || '')) $('botId').textContent = params.get('bot');
+// Live feed from the ACGbots site first; updates.json next to this file if the site can't be reached.
+const LIVE_UPDATES = 'https://acgbots.com/api/public/updates';
+const load = (url) => fetch(url, { cache: 'no-store' })
+  .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+  .then((list) => { if (!Array.isArray(list) || !list.length) throw new Error('empty'); updates = list.filter((u) => u && u.title); render(); });
+load(params.get('updates') || LIVE_UPDATES).catch(() => load('updates.json')).catch(() => {});
+
+// Slowly drifting chat bubbles and specks of light.
+const cv = $('fx'), cx = cv.getContext('2d');
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const bubble = new Path2D('M8 4h16a6 6 0 0 1 6 6v9a6 6 0 0 1-6 6H14l-6.5 5.2c-.7.5-1.5 0-1.5-.8V25a5 5 0 0 1-4-5v-10a6 6 0 0 1 6-6Z');
+let things = [];
+function seed() {
+  cv.width = innerWidth * devicePixelRatio; cv.height = innerHeight * devicePixelRatio;
+  cx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  const n = Math.round((innerWidth * innerHeight) / 26000);
+  things = Array.from({ length: n }, (_, i) => ({
+    x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+    r: i % 9 === 0 ? 0.6 + Math.random() * 0.9 : 0, s: 0.4 + Math.random() * 1.4,
+    v: 0.08 + Math.random() * 0.25, a: Math.random() * Math.PI * 2, gold: Math.random() < 0.12,
+  }));
+}
+function frame() {
+  cx.clearRect(0, 0, innerWidth, innerHeight);
+  for (const t of things) {
+    if (!still) { t.y -= t.v; t.a += 0.004; t.x += Math.sin(t.a) * 0.15; }
+    if (t.y < -40) { t.y = innerHeight + 40; t.x = Math.random() * innerWidth; }
+    if (t.r) {
+      cx.save(); cx.translate(t.x, t.y); cx.scale(t.r, t.r); cx.rotate(Math.sin(t.a) * 0.15);
+      cx.fillStyle = t.gold ? 'rgba(56,189,248,.12)' : 'rgba(203,184,255,.10)'; cx.fill(bubble); cx.restore();
+    } else {
+      cx.beginPath(); cx.arc(t.x, t.y, t.s, 0, Math.PI * 2);
+      cx.fillStyle = t.gold ? 'rgba(255,207,63,.55)' : `rgba(190,205,255,${0.25 + 0.35 * Math.abs(Math.sin(t.a * 3))})`; cx.fill();
+    }
+  }
+  if (!still) requestAnimationFrame(frame);
+}
+addEventListener('resize', () => { seed(); if (still) frame(); });
+seed();
+frame();
+</script>
+</body>
+</html>
