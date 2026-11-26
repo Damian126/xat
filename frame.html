@@ -97,7 +97,7 @@
     <h1 class="pitch">Your own <em>guardian</em> in five minutes</h1>
     <ol class="steps">
       <li><b>Assign the (bot) power</b> in your chat.</li>
-      <li><b>Set the Bot ID</b> to <span class="chip" id="botId">1561485325</span> in your group settings.</li>
+      <li><b>Set the Bot ID</b> to <span class="chip" id="botId">989898</span> in your group settings.</li>
       <li><b>Start it</b> from the ACGbots panel and type <span class="chip">!confirmbot</span></li>
     </ol>
     <div class="cta">Moderation · games · mail<small>Free to start. Ask in this chat for help.</small></div>
@@ -168,7 +168,7 @@ addEventListener('resize', place);
 place();
 render();
 
-// Settings can be passed in the address, for example frame.html?bot=1561485325&updates=https://example.com/updates.json
+// Settings can be passed in the address, for example frame.html?bot=989898&updates=https://example.com/updates.json
 const params = new URLSearchParams(location.search);
 if (/^\d{1,12}$/.test(params.get('bot') || '')) $('botId').textContent = params.get('bot');
 // Live feed from the ACGbots site first; updates.json next to this file if the site can't be reached.
